@@ -201,8 +201,9 @@ public class MovieFragment extends Fragment {
         @Override
         protected void onPostExecute(ArrayList<Movie> result) {
             if (result != null) {
-                imageAdapter.setArray(result);
-                imageAdapter.notifyDataSetChanged();
+                imageAdapter.clear();
+                for(Movie movie: result)
+                    imageAdapter.add(movie);
             }
         }
     }

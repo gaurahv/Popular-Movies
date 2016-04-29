@@ -3,6 +3,7 @@ package com.example.gauravagarwal.popularmovies;
 import android.content.Context;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
 
@@ -15,11 +16,18 @@ import java.util.ArrayList;
  */
 public class ImageAdapter extends BaseAdapter {
     private Context mContext;
-    ArrayList<Movie> mThumbIds;
+    private ArrayList<Movie> mThumbIds;
 
     public ImageAdapter(Context c, ArrayList<Movie> mThumbIds) {
         mContext = c;
         this.mThumbIds = mThumbIds;
+    }
+    public void clear(){
+        mThumbIds.clear();
+    }
+    public void add(Movie movie){
+        mThumbIds.add(movie);
+        notifyDataSetChanged();
     }
 
     public int getCount() {
@@ -50,7 +58,4 @@ public class ImageAdapter extends BaseAdapter {
     }
 
 
-    public void setArray(ArrayList<Movie> array) {
-        this.mThumbIds = array;
-    }
 }
