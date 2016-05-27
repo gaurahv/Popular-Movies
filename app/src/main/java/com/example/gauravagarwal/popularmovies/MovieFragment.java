@@ -1,10 +1,10 @@
 package com.example.gauravagarwal.popularmovies;
 
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
@@ -13,25 +13,31 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.GridView;
+import android.widget.Toast;
 
-import org.json.JSONArray;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
+import com.example.gauravagarwal.popularmovies.data.MovieContract;
+import com.example.gauravagarwal.popularmovies.data.MovieDbHelper;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
-import java.net.ProtocolException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.concurrent.CopyOnWriteArrayList;
+
+import static com.example.gauravagarwal.popularmovies.Utility.getMovieDataFromJson;
 
 public class MovieFragment extends Fragment {
-
+    private static final int COLUMN_MOVIE_ID_POSITION = 0;
+    private static final int COLUMN_POSTER_URL_POSITION = 1;
     private ImageAdapter imageAdapter;
+
     public MovieFragment() {
     }
 
@@ -41,11 +47,12 @@ public class MovieFragment extends Fragment {
 
         //Default Thumbanil
         Movie sampleThumbanil = new Movie("http://image.tmdb.org/t/p/w185/weUSwMdQIa3NaXVzwUoIIcAi85d.jpg", "Title", "Overview", "Release_date", "User_rating",
-                "Num Votes"
+                "Num Votes", "id", false
         );
 
         ArrayList<Movie> list = new ArrayList<Movie>();
         list.add(sampleThumbanil);
+
         //Setting adapter on list
         imageAdapter = new ImageAdapter(this.getContext(), list);
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
@@ -75,137 +82,96 @@ public class MovieFragment extends Fragment {
 
         //Getting shared Preference from the settings
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
-        String sortOrder = prefs.getString(getString(R.string.pref_sort_key),
+        String SORT_ORDER = prefs.getString(getString(R.string.pref_sort_key),
                 getString(R.string.pref_sort_popular));
-
-        //Getting movie data from website
-        FetchMovieTask movieTask = new FetchMovieTask();
-        movieTask.execute(sortOrder);
-    }
-
-    private ArrayList<Movie> getMovieDataFromJson(String movieJsonStr) throws JSONException {
-
-        //Main Json object
-        JSONObject jsonObject = new JSONObject(movieJsonStr);
-        //Resulting array of movies
-        JSONArray jsonArray = jsonObject.getJSONArray("results");
-
-        ArrayList<Movie> result = new ArrayList<Movie>();
-        final String BASE_IMAGE_URL = "http://image.tmdb.org/t/p/w185";
-        for (int i = 0; i < jsonArray.length(); i++) {
-            String posterUrl;
-            String title;
-            String overview;
-            String releaseDate;
-            String user_rating;
-            String num_votes;
-            //ith element of array
-            JSONObject movie = jsonArray.getJSONObject(i);
-
-            posterUrl = BASE_IMAGE_URL + movie.getString("poster_path");
-            overview = movie.getString("overview");
-            title = movie.getString("title");
-            user_rating = movie.getString("vote_average");
-            releaseDate = movie.getString("release_date");
-            num_votes = movie.getString("vote_count");
-            Movie movieObject = new Movie(posterUrl, title, overview, releaseDate, user_rating, num_votes);
-            result.add(movieObject);
+        if (SORT_ORDER.equals("My Favorites")) {
+            setFavorites();
+        } else {
+            sendRequest(SORT_ORDER);
         }
-        return result;
     }
 
-    public class FetchMovieTask extends AsyncTask<String, Void, ArrayList<Movie>> {
+    private void setFavorites() {
+        MovieDbHelper movieDbHelper = new MovieDbHelper(getContext());
+        SQLiteDatabase sqLiteDatabase = movieDbHelper.getReadableDatabase();
 
-        @Override
-        protected ArrayList<Movie> doInBackground(String... params) {
-            if (params == null) {
-                return null;
-            }
+        String[] projection = {
+                MovieContract.MovieEntry.COLUMN_ID,
+                MovieContract.MovieEntry.COLUMN_POSTER_URL
+        };
 
+        Cursor c = sqLiteDatabase.query(
+                MovieContract.MovieEntry.TABLE_NAME,  // The table to query
+                projection,                               // The columns to return
+                null,                                // The columns for the WHERE clause
+                null,                   // The values for the WHERE clause
+                null,                                     // don't group the rows
+                null,
+                null                            // don't filter by row groups
 
-            HttpURLConnection urlConnection = null;
-            BufferedReader reader = null;
-            String movieJsonStr = null;
-            String SORT_ORDER = "";
-            final String MOVIE_BASE_URL = "https://api.themoviedb.org/3/movie/";
-            final String API_KEY_PARAM = "api_key";
-            final String key = getString(R.string.APP_KEY);
+        );
+        c.moveToFirst();
+        imageAdapter.clear();
+        while (c.moveToNext()) {
 
-            if (params[0].equals("Most Popular")) {
-                SORT_ORDER = "popular";
-            } else if (params[0].equals("Most Rated")) {
-                SORT_ORDER = "top_rated";
-            } else {
-                return null;
-            }
-            try {
-                Uri uri = Uri.parse(MOVIE_BASE_URL).buildUpon()
-                        .appendPath(SORT_ORDER)
-                        .appendQueryParameter(API_KEY_PARAM, key)
-                        .build();
-                URL url = new URL(uri.toString());
+            String url = c.getString(COLUMN_POSTER_URL_POSITION);
 
-                // Create the request to movie database, and open the connection
-                urlConnection = (HttpURLConnection) url.openConnection();
-                urlConnection.setRequestMethod("GET");
-                urlConnection.connect();
+            Movie movie = new Movie();
+            movie.posterUrl = c.getString(COLUMN_POSTER_URL_POSITION);
+            movie.id = c.getString(COLUMN_MOVIE_ID_POSITION);
+            movie.isFavorite = true;
+            imageAdapter.add(movie);
+        }
+        movieDbHelper.close();
+    }
 
-                // Read the input stream into a String
-                InputStream inputStream = urlConnection.getInputStream();
-                StringBuffer buffer = new StringBuffer();
-                if (inputStream == null) {
-                    // Nothing to do.
-                    return null;
-                }
-                reader = new BufferedReader(new InputStreamReader(inputStream));
+    private void sendRequest(String SORT_ORDER) {
+        final String movieJsonStr = null;
+        final String MOVIE_BASE_URL = "https://api.themoviedb.org/3/movie/";
+        final String API_KEY_PARAM = "api_key";
+        final String key = getString(R.string.APP_KEY);
 
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    buffer.append(line + "\n");
-                }
+        if (SORT_ORDER.equals("Most Popular")) {
+            SORT_ORDER = "popular";
+        } else if (SORT_ORDER.equals("Most Rated")) {
+            SORT_ORDER = "top_rated";
+        }
+        Uri uri = Uri.parse(MOVIE_BASE_URL).buildUpon()
+                .appendPath(SORT_ORDER)
+                .appendQueryParameter(API_KEY_PARAM, key)
+                .build();
+        URL url = null;
+        try {
+            url = new URL(uri.toString());
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
 
-                if (buffer.length() == 0) {
-                    // Stream was empty.  No point in parsing.
-                    return null;
-                }
-                movieJsonStr = buffer.toString();
+        JsonObjectRequest jsObjRequest = new JsonObjectRequest
+                (Request.Method.GET, url.toString(), null, new Response.Listener<JSONObject>() {
 
-            } catch (ProtocolException e) {
-                e.printStackTrace();
-            } catch (MalformedURLException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            } finally {
-                if (urlConnection != null) {
-                    urlConnection.disconnect();
-                }
-                if (reader != null) {
-                    try {
-                        reader.close();
-                    } catch (final IOException e) {
-                        e.printStackTrace();
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        ArrayList<Movie> result = null;
+                        try {
+                            result = getMovieDataFromJson(response.toString());
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                        imageAdapter.clear();
+                        for (Movie movie : result)
+                            imageAdapter.add(movie);
                     }
-                }
-            }
+                }, new Response.ErrorListener() {
 
-            try {
-                return getMovieDataFromJson(movieJsonStr);
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-
-            return null;
-        }
-
-        @Override
-        protected void onPostExecute(ArrayList<Movie> result) {
-            if (result != null) {
-                imageAdapter.clear();
-                for(Movie movie: result)
-                    imageAdapter.add(movie);
-            }
-        }
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        // TODO Auto-generated method stub
+                        Toast.makeText(getActivity().getApplicationContext(), "Something went wrong, please check your internet connection and try again", Toast.LENGTH_LONG).show();
+                    }
+                });
+        RequestQueue requestQueue = Volley.newRequestQueue(getActivity().getApplicationContext());
+        requestQueue.add(jsObjRequest);
     }
 }
 

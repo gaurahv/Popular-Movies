@@ -4,6 +4,7 @@
     <string name="hello_world">Hello world!</string>
     <string name="pref_sort_popular">Most Popular</string>
     <string name="pref_sort_rating">Most Rated</string>
+    <string name="pref_sort_favorite">My Favorites</string>
+    <string name="APP_KEY">"YOUR APP KEY"</string>
     <string name="action_settings">Settings</string>
-    <string name="APP_KEY"></string>
 </resources>

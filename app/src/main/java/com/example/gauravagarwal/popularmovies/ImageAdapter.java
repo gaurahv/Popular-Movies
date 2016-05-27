@@ -3,7 +3,6 @@ package com.example.gauravagarwal.popularmovies;
 import android.content.Context;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
 
@@ -53,9 +52,7 @@ public class ImageAdapter extends BaseAdapter {
         } else {
             imageView = (ImageView) convertView;
         }
-        Picasso.with(mContext).load(mThumbIds.get(position).posterUrl).into(imageView);
+        Picasso.with(mContext).load(mThumbIds.get(position).posterUrl).placeholder(R.drawable.placeholder).into(imageView);
         return imageView;
     }
-
-
 }

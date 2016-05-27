@@ -3,5 +3,6 @@
     <string-array name="pref_sort">
         <item>@string/pref_sort_popular</item>
         <item>@string/pref_sort_rating</item>
+        <item>@string/pref_sort_favorite</item>
     </string-array>
 </resources>
