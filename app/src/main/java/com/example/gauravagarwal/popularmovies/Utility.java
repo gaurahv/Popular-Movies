@@ -15,11 +15,10 @@ import java.util.ArrayList;
  */
 public class Utility {
 
-    private final static String MOVIE_BASE_URL = "https://api.themoviedb.org/3/movie/";
-    private final static String BASE_IMAGE_URL = "http://image.tmdb.org/t/p/w185";
-    private final static String YOUTUBE_BASE_URL = "https://www.youtube.com/watch";
-
-    private final static String API_KEY_PARAM = "api_key";
+    public final static String MOVIE_BASE_URL = "https://api.themoviedb.org/3/movie/";
+    public final static String BASE_IMAGE_URL = "http://image.tmdb.org/t/p/w185";
+    public final static String YOUTUBE_BASE_URL = "https://www.youtube.com/watch";
+    public final static String API_KEY_PARAM = "api_key";
     private String key;
 
     public static ArrayList<Movie> getMovieDataFromJson(String movieJsonStr) throws JSONException {
@@ -45,6 +44,9 @@ public class Utility {
     }
 
     public static ArrayList<Trailer> getTrailerUrlsFromJSON(JSONObject response) throws JSONException {
+        if(response == null){
+            return  new ArrayList<Trailer>();
+        }
         ArrayList<Trailer> trailersList = new ArrayList<Trailer>();
         JSONArray youtubeArray = response.getJSONArray("youtube");
         for (int i = 0; i < youtubeArray.length(); i++) {
@@ -58,6 +60,9 @@ public class Utility {
     }
 
     public static ArrayList<Review> getReviewsFromJSON(JSONObject response) throws JSONException {
+        if(response == null){
+            return  new ArrayList<Review>();
+        }
         ArrayList<Review> reviewsList = new ArrayList<Review>();
         JSONArray jsonArray = response.getJSONArray("results");
         for (int i = 0; i < jsonArray.length(); i++) {
@@ -101,6 +106,9 @@ public class Utility {
     }
 
     public static Movie getIndivdualMovieDataFromJson(JSONObject movie) throws JSONException {
+        if(movie == null){
+            return new Movie();
+        }
         String posterUrl = BASE_IMAGE_URL + movie.getString("poster_path");
         String overview = movie.getString("overview");
         String title = movie.getString("title");

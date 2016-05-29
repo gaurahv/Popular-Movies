@@ -3,31 +3,27 @@ package com.example.gauravagarwal.popularmovies;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.view.InflateException;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.GridView;
 
-public class MainActivity extends AppCompatActivity {
-    private boolean mTwoPane;
+public class MainActivity extends AppCompatActivity implements MovieFragment.Callback {
+    boolean mTwopane;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        View view = findViewById(R.id.detail_container);
-        if (view    != null) {
-            mTwoPane = true;
-            if (savedInstanceState == null){
-                getSupportFragmentManager().beginTransaction()
-                        .replace(R.id.detail_container, new DetailFragment())
-                        .commit();
+
+        if (findViewById(R.id.detail_container) != null) {
+            mTwopane = true;
+            if (savedInstanceState == null) {
+                onItemSelected(0);
             }
         }
-
-        getSupportFragmentManager().beginTransaction()
-                .add(R.id.main_container, new MovieFragment())
-                .commit();
     }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -47,5 +43,26 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onItemSelected(int position) {
+
+        GridView gridView = (GridView) findViewById(R.id.gridview);
+        Movie movie = (Movie) gridView.getItemAtPosition(position);
+
+        if (movie != null) {
+            if (mTwopane) {
+                Bundle bundle = new Bundle();
+                bundle.putParcelable("MOVIE", movie);
+                DetailFragment detailFragment = new DetailFragment();
+                detailFragment.setArguments(bundle);
+                getSupportFragmentManager().beginTransaction().replace(R.id.detail_container, detailFragment).commit();
+            } else {
+                Intent intent = new Intent(MainActivity.this, DetailActivity.class)
+                        .putExtra(Intent.EXTRA_TEXT, movie);
+                startActivity(intent);
+            }
+        }
     }
 }

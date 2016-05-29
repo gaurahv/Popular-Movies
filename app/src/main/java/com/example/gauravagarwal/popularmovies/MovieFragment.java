@@ -1,6 +1,5 @@
 package com.example.gauravagarwal.popularmovies;
 
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -37,39 +36,45 @@ public class MovieFragment extends Fragment {
     private static final int COLUMN_MOVIE_ID_POSITION = 0;
     private static final int COLUMN_POSTER_URL_POSITION = 1;
     private ImageAdapter imageAdapter;
+    private boolean mtwoPane;
+    private Bundle bundle;
+    private ArrayList<Movie> list;
+    private GridView gridView;
+
+
+    public interface Callback {
+        public void onItemSelected(int position);
+    }
 
     public MovieFragment() {
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+                             final Bundle savedInstanceState) {
 
         //Default Thumbanil
-        Movie sampleThumbanil = new Movie("http://image.tmdb.org/t/p/w185/weUSwMdQIa3NaXVzwUoIIcAi85d.jpg", "Title", "Overview", "Release_date", "User_rating",
-                "Num Votes", "id", false
+        Movie sampleThumbanil = new Movie("http://image.tmdb.org/t/p/w185/zSouWWrySXshPCT4t3UKCQGayyo.jpg", "Title", "Overview", "Release_date", "User_rating",
+                "Num Votes", "246655", false
         );
-
-        ArrayList<Movie> list = new ArrayList<Movie>();
+        list = new ArrayList<Movie>();
         list.add(sampleThumbanil);
 
         //Setting adapter on list
-        imageAdapter = new ImageAdapter(this.getContext(), list);
+        imageAdapter = new ImageAdapter(getContext(), list);
+
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
 
         //Grid view From Fragment and setting adapter to it
-        GridView gridview = (GridView) rootView.findViewById(R.id.gridview);
-        gridview.setAdapter(imageAdapter);
+        gridView = (GridView) rootView.findViewById(R.id.gridview);
+        gridView.setAdapter(imageAdapter);
 
         //Setting item listener for details of item ie.movies
-        gridview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
-                Movie movie = imageAdapter.getItem(position);
-                Intent intent = new Intent(getActivity(), DetailActivity.class)
-                        .putExtra(Intent.EXTRA_TEXT, movie);
-                startActivity(intent);
+                ((Callback) getActivity()).onItemSelected(position);
             }
         });
 
@@ -86,12 +91,15 @@ public class MovieFragment extends Fragment {
                 getString(R.string.pref_sort_popular));
         if (SORT_ORDER.equals("My Favorites")) {
             setFavorites();
+            if(imageAdapter.getCount() == 0){
+                Toast.makeText(getContext(), "Sorry you have no favorites!!", Toast.LENGTH_SHORT).show();
+            }
         } else {
             sendRequest(SORT_ORDER);
         }
     }
 
-    private void setFavorites() {
+    public void setFavorites() {
         MovieDbHelper movieDbHelper = new MovieDbHelper(getContext());
         SQLiteDatabase sqLiteDatabase = movieDbHelper.getReadableDatabase();
 
@@ -113,9 +121,6 @@ public class MovieFragment extends Fragment {
         c.moveToFirst();
         imageAdapter.clear();
         while (c.moveToNext()) {
-
-            String url = c.getString(COLUMN_POSTER_URL_POSITION);
-
             Movie movie = new Movie();
             movie.posterUrl = c.getString(COLUMN_POSTER_URL_POSITION);
             movie.id = c.getString(COLUMN_MOVIE_ID_POSITION);
@@ -161,13 +166,14 @@ public class MovieFragment extends Fragment {
                         imageAdapter.clear();
                         for (Movie movie : result)
                             imageAdapter.add(movie);
+
                     }
                 }, new Response.ErrorListener() {
 
                     @Override
                     public void onErrorResponse(VolleyError error) {
                         // TODO Auto-generated method stub
-                        Toast.makeText(getActivity().getApplicationContext(), "Something went wrong, please check your internet connection and try again", Toast.LENGTH_LONG).show();
+                        Toast.makeText(getContext(), "Something went wrong, please check your internet connection and try again", Toast.LENGTH_LONG).show();
                     }
                 });
         RequestQueue requestQueue = Volley.newRequestQueue(getActivity().getApplicationContext());

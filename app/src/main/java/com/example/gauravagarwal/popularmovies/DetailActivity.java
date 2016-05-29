@@ -12,9 +12,8 @@ public class DetailActivity extends ActionBarActivity {
 
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
-                    .add(R.id.detail_container, new DetailFragment())
+                    .replace(R.id.detail_container, new DetailFragment())
                     .commit();
         }
-
     }
 }

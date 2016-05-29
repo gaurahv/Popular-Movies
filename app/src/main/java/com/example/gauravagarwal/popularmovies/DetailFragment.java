@@ -12,7 +12,6 @@ import android.support.v4.content.Loader;
 import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -47,7 +46,7 @@ import static com.example.gauravagarwal.popularmovies.Utility.makeYoutubeUrl;
  * Created by GAURAV AGARWAL on 26-05-2016.
  */
 
-public class DetailFragment extends Fragment implements LoaderManager.LoaderCallbacks {
+public class DetailFragment extends Fragment {
 
     RecyclerView reviewRecyclerView, trailerRecyclerView;
     RecyclerView.LayoutManager trailerLayoutManager;
@@ -59,7 +58,6 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
     ImageView posterImage;
     ImageButton favorite;
     Movie movie;
-
     private String key;
 
     public DetailFragment() {
@@ -74,7 +72,6 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
 
         trailerRecyclerView = (RecyclerView) rootView.findViewById(R.id.trailer_list);
         reviewRecyclerView = (RecyclerView) rootView.findViewById(R.id.review_list);
-
         title = (TextView) rootView.findViewById(R.id.title_text_view);
         description = (TextView) rootView.findViewById(R.id.description_text_view);
         releaseDate = (TextView) rootView.findViewById(R.id.release_date_text_view);
@@ -85,8 +82,14 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
 
         // The detail Activity called via intent.  Inspect the intent for  data.
         Intent intent = getActivity().getIntent();
+
         if (intent != null && intent.hasExtra(Intent.EXTRA_TEXT)) {
             movie = intent.getParcelableExtra(Intent.EXTRA_TEXT);
+        }
+        if(getArguments()!=null) {
+            movie = getArguments().getParcelable("MOVIE");
+        }
+        if(movie!=null) {
             RequestQueue requestQueue = Volley.newRequestQueue(getActivity().getApplicationContext());
             if (movie.title.equals("Title")) {
                 callIndividualApi(movie.id, requestQueue);
@@ -99,10 +102,7 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
             favorite.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-
                     updateDatabase();
-                    movie.isFavorite = !movie.isFavorite;
-                    setFavoriteImageSource(movie.isFavorite);
                 }
             });
             setTrailers(movie, requestQueue);
@@ -133,14 +133,14 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
             sqLiteDatabase.insert(MovieEntry.TABLE_NAME, null, contentValues);
         }
         movieDbHelper.close();
+        movie.isFavorite = !movie.isFavorite;
+        setFavoriteImageSource(movie.isFavorite);
     }
 
     private void setFavoriteImageSource(boolean isMovieFavorite) {
         if (isMovieFavorite) {
-            Log.d("A", "Hello I am  favorite");
             favorite.setImageResource(R.drawable.favorite);
         } else {
-            Log.d("A", "Hello I am not favorite");
             favorite.setImageResource(R.drawable.unfavorite);
         }
     }
@@ -164,7 +164,7 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
                     @Override
                     public void onErrorResponse(VolleyError error) {
                         // TODO Auto-generated method stub
-                        Toast.makeText(getActivity().getApplicationContext(), "Something went wrong, please check your internet connection and try again", Toast.LENGTH_LONG).show();
+                        Toast.makeText(getContext(), "Something went wrong, please check your internet connection and try again", Toast.LENGTH_LONG).show();
                     }
                 });
         requestQueue.add(jsObjRequest);
@@ -212,7 +212,7 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
                     @Override
                     public void onErrorResponse(VolleyError error) {
                         // TODO Auto-generated method stub
-                        Toast.makeText(getActivity().getApplicationContext(), "Something went wrong, please check your internet connection and try again", Toast.LENGTH_LONG).show();
+                        Toast.makeText(getContext(), "Something went wrong, please check your internet connection and try again", Toast.LENGTH_LONG).show();
                     }
                 });
         requestQueue.add(jsObjRequest);
@@ -248,7 +248,6 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
             public void onClick(View view, int position) {
                 Trailer trailer = trailerUrls.get(position);
                 Uri uri = makeYoutubeUrl(trailer.getSrc());
-                Log.d("A", String.valueOf(uri));
                 Intent intent = new Intent(Intent.ACTION_VIEW, uri);
                 startActivity(intent);
             }
@@ -285,18 +284,4 @@ public class DetailFragment extends Fragment implements LoaderManager.LoaderCall
         movieDbHelper.close();
     }
 
-    @Override
-    public Loader onCreateLoader(int id, Bundle args) {
-        return null;
-    }
-
-    @Override
-    public void onLoadFinished(Loader loader, Object data) {
-
-    }
-
-    @Override
-    public void onLoaderReset(Loader loader) {
-
-    }
 }
